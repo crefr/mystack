@@ -20,7 +20,8 @@ stack_t stackCtor(size_t start_cap);
 void stackDtor(stack_t * stk);
 stack_elem_t stackPop(stack_t * stk);
 void stackPush(stack_t * stk, stack_elem_t val);
-uint32_t stackHash(stack_t * stk);
+uint32_t stackGetHash(stack_t * stk);
+void stackUpdateHash(stack_t * stk);
 stackstatus stackOK(stack_t * stk);
 
 #endif

@@ -30,7 +30,7 @@ uint32_t MurMur32Hash(const void * data, size_t len, uint32_t seed)
 
     //the rest of bytes (least than 4)
     curblock = 0;
-    for (size_t index = 0; index != 0; index--){
+    for (size_t index = len % sizeof(uint32_t); index != 0; index--){
         curblock <<= sizeof(uint8_t);
         curblock |= databytes[index - 1];
     }

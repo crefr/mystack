@@ -18,7 +18,7 @@ stack_t stackCtor(size_t start_cap)
     stk.data = (stack_elem_t *) calloc(start_cap, sizeof(stack_elem_t));
     stk.size = 0;
     stk.capacity = start_cap;
-    stk.hash = stackHash(&stk);
+    stackUpdateHash(&stk);
     return stk;
 }
 
@@ -31,7 +31,7 @@ void stackResize(stack_t * stk, size_t newcap)
 {
     stk->data = (stack_elem_t *) realloc(stk->data, newcap * sizeof(stack_elem_t));
     stk->capacity = newcap;
-    stk->hash = stackHash(stk);
+    stackUpdateHash(stk);
 }
 
 void stackEnlarge(stack_t * stk)
@@ -50,7 +50,7 @@ stack_elem_t stackPop(stack_t * stk)
     stack_elem_t val = stk->data[--(stk->size)];
     if (stk->size <= stk->capacity / 4)
         stackReduce(stk);
-    stk->hash = stackHash(stk);
+    stackUpdateHash(stk);
     return val;
 }
 
@@ -60,22 +60,31 @@ void stackPush(stack_t * stk, stack_elem_t val)
         stackEnlarge(stk);
     stk->data[stk->size] = val;
     stk->size++;
-    stk->hash = stackHash(stk);
+    stackUpdateHash(stk);
 }
 
 stackstatus stackOK(stack_t * stk)
 {
-    printf("stk->hash: %08x ", stk->hash);
-    printf("real hash: %08x\n", stackHash(stk));
-    if (stk->hash != stackHash(stk))
+    if (stk->hash != stackGetHash(stk))
         return STACK_HASH_ERROR;
     return STACK_OK;
 }
 
-uint32_t stackHash(stack_t * stk)
+uint32_t stackGetHash(stack_t * stk)
 {
+    uint32_t oldhash = stk->hash;
+    stk->hash = 0;
+    stackUpdateHash(stk);
+    uint32_t newhash = stk->hash;
+    stk->hash = oldhash;
+    return newhash;
+}
+
+void stackUpdateHash(stack_t * stk)
+{
+    stk->hash = 52;
     uint32_t datahash   = MurMur32Hash(stk->data, stk->capacity * sizeof(stack_elem_t), 0);
     uint32_t structhash = MurMur32Hash(stk, sizeof(stack_t), 0);
     uint32_t hash = (datahash >> 1) + (structhash >> 1);
-    return hash;
+    stk->hash = hash;
 }
