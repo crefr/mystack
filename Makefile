@@ -40,7 +40,7 @@ endif
 
 # all: $(FILENAME)
 
-$(FILENAME): $(OBJDIR)main.o $(OBJDIR)mystack.o $(OBJDIR)logger.o
+$(FILENAME): $(OBJDIR)main.o $(OBJDIR)mystack.o $(OBJDIR)logger.o $(OBJDIR)hash.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 $(OBJDIR)main.o: $(SRCDIR)main.cpp $(HEADDIR)mystack.h $(HEADDIR)logger.h
@@ -50,6 +50,9 @@ $(OBJDIR)mystack.o: $(SRCDIR)mystack.cpp $(HEADDIR)mystack.h $(HEADDIR)logger.h
 	$(CC) $(CFLAGS) -c $< -o $@
 $(OBJDIR)logger.o: $(SRCDIR)logger.cpp $(HEADDIR)logger.h
 	$(CC) $(CFLAGS) -c $< -o $@
+$(OBJDIR)hash.o: $(SRCDIR)hash.cpp $(HEADDIR)hash.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
 
 clean:
 	rm $(OBJDIR)*

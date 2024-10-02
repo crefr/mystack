@@ -16,7 +16,7 @@ int logStart(const char * logfilename, int loglevel)
         printf(">>> logger ERROR: cannot open logfile\n");
         return 0;
     }
-    logPrint(0, "\n<-----------STARTED----------->\n");
+    logPrint(0, "\n<-----------STARTED----------->");
     return 1;
 }
 
