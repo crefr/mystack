@@ -1,16 +1,22 @@
 #ifndef LOGGER_INCLUDED
 #define LOGGER_INCLUDED
 
-#define LOGPRINT(loglevel, ...)                  \
+#define LOGPRINTWITHTIME(loglevel, ...)          \
         do{                                      \
                 logPrintTime(loglevel);          \
                 logPrint(loglevel, __VA_ARGS__); \
         }while(0)
 
-#define LOGEXIT()                                                       \
-        do{                                                             \
-                logPrint(0, "<-----------ENDING------------>\n");       \
-                logExit();                                              \
+#define LOGPRINT(loglevel, ...)                  \
+        do{                                      \
+                logPrint(loglevel, __VA_ARGS__); \
+        }while(0)
+
+#define LOGPRINTERROR(loglevel, ...)             \
+        do{                                      \
+                logPrintTime(loglevel);          \
+                logPrint(loglevel, __VA_ARGS__); \
+                logExit();                       \
         }while(0)
 
 int logStart(const char * logfile, int loglevel);

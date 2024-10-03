@@ -48,5 +48,6 @@ void logPrintTime(int loglevel)
 
 void logExit()
 {
+    logPrint(0, "<-----------ENDING------------>\n");
     fclose(LOGfile);
 }
