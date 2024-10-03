@@ -19,7 +19,8 @@ typedef enum {
     STACK_UNDEF_ERROR,
     STACK_HASH_ERROR,
     STACK_DATA_ERROR,
-    STACK_SIZE_TOOBIG
+    STACK_SIZE_TOOBIG,
+    STACK_STCANARYERROR
 } stackstatus;
 
 typedef double stack_elem_t;
@@ -28,12 +29,19 @@ typedef uint32_t hash_t;
 // do not move uint32_t hash, it must be first (to skip it while calculating hash)
 typedef struct {
     hash_t hash;
+    canary_t structcanary1;
     stack_elem_t * data;
     size_t size;
     size_t capacity;
+    canary_t structcanary2;
 } stack_t;
 
 #define MINSTACKDIFF 16
+
+IF_STACK_DEBUG(
+int checkIfStructCanariesOK(stack_t * stk);
+
+)
 
 stack_t stackCtor(size_t start_cap);
 void stackDtor(stack_t * stk);

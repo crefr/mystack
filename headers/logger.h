@@ -19,6 +19,13 @@
                 logExit();                       \
         }while(0)
 
+#define PRINTFANDLOG(loglevel, ...)              \
+        do{                                      \
+                logPrint(loglevel, __VA_ARGS__); \
+                printf(__VA_ARGS__);             \
+                printf("\n");                    \
+        }while(0)
+
 int logStart(const char * logfile, int loglevel);
 void logPrint(int loglevel, const char * fmt, ...);
 void logPrintTime(int loglevel);

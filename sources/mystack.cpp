@@ -1,10 +1,23 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <assert.h>
 
 #include "mystack.h"
 #include "hash.h"
 #include "logger.h"
+
+#define STACKASSERT(stkptr, expr)                                                                             \
+    do{                                                                                                       \
+        if (!expr){                                                                                           \
+            LOGPRINTWITHTIME(0, "---\\/\n<<<<<<<<STACK ERROR>>>>>>>>");                                       \
+            PRINTFANDLOG(0, "Assertion failed:\n\t{" #expr "}\n\tFILE %s, in FUNCTION \"%s\", LINE %d",       \
+                         __FILE__, __PRETTY_FUNCTION__, __LINE__);                                            \
+            stackDump(stkptr);                                                                                \
+            logExit();                                                                                        \
+            exit(1);                                                                                          \
+        }                                                                                                     \
+    }while(0)
 
 #define MIN(a, b) ((a) < (b)) ? (a) : (b)
 #define MAX(a, b) ((a) > (b)) ? (a) : (b)
@@ -16,9 +29,12 @@ void stackResize(stack_t * stk, size_t newcap);
 stack_t stackCtor(size_t start_cap)
 {
     stack_t stk = {};
+    stk.structcanary1 = CANARY1;
     stk.data = (stack_elem_t *) calloc(start_cap, sizeof(stack_elem_t));
     stk.size = 0;
     stk.capacity = start_cap;
+    stk.structcanary2 = CANARY2;
+
     stk.hash = stackGetHash(&stk);
     return stk;
 }
@@ -51,6 +67,7 @@ void stackReduce(stack_t * stk)
 
 stack_elem_t stackPop(stack_t * stk)
 {
+    STACKASSERT(stk, stk->size != 0);
     stack_elem_t val = stk->data[--(stk->size)];
     if (stk->size <= stk->capacity / 4)
         stackReduce(stk);
@@ -69,6 +86,11 @@ void stackPush(stack_t * stk, stack_elem_t val)
 
 stackstatus stackOK(stack_t * stk)
 {
+    IF_STACK_DEBUG(
+    if (!checkIfStructCanariesOK(stk))
+        return STACK_STCANARYERROR;
+    )
+
     if (stk->data == NULL)
         return STACK_DATA_ERROR;
     if (stk->size >= stk->capacity)
@@ -89,8 +111,8 @@ hash_t stackGetHash(stack_t * stk)
 
 void stackDump(stack_t * stk)
 {
-    logPrintTime(LOG_DEBUG);
-    logPrint(LOG_DEBUG, "-----------STACK_DUMP-----------");
+    //logPrintTime(LOG_DEBUG);
+    logPrint(LOG_DEBUG, "-----------STACK DUMP-----------");
     logPrint(LOG_DEBUG, "stack_t[%p]{", stk);
     logPrint(LOG_DEBUG, "\tsize = %lu", stk->size);
     logPrint(LOG_DEBUG, "\tcapacity = %lu", stk->capacity);
@@ -103,5 +125,15 @@ void stackDump(stack_t * stk)
         }
         logPrint(LOG_DEBUG, "\t}");
     }
-    logPrint(LOG_DEBUG, "}\n------------------------STACK DUMP END------------");
+    logPrint(LOG_DEBUG, "}\n---------STACK DUMP END---------");
 }
+
+#ifdef STACK_DEBUG
+int checkIfStructCanariesOK(stack_t * stk)
+{
+    if (stk->structcanary1 != CANARY1 ||
+        stk->structcanary2 != CANARY2)
+        return 0;
+    return 1;
+}
+#endif
