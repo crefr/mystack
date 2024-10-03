@@ -5,6 +5,7 @@
 
 #include "hash.h"
 
+static uint32_t MurMur32Scramble(uint32_t datablock);
 
 static uint32_t MurMur32Scramble(uint32_t datablock) {
     datablock *= 0xcc9e2d51;
@@ -12,7 +13,7 @@ static uint32_t MurMur32Scramble(uint32_t datablock) {
     datablock *= 0x1b873593;
     return datablock;
 }
-//static uint32_t MurMur32Scramble(uint32_t datablock);
+
 uint32_t MurMur32Hash(const void * data, size_t len, uint32_t seed)
 {
     const uint8_t * databytes = (const uint8_t *) data;

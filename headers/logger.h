@@ -9,7 +9,7 @@
 
 #define LOGEXIT()                                                       \
         do{                                                             \
-                logPrint(0, "<-----------ENDING------------>\n");     \
+                logPrint(0, "<-----------ENDING------------>\n");       \
                 logExit();                                              \
         }while(0)
 

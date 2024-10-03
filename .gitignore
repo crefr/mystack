@@ -1,4 +1,5 @@
 Obj/
 log.txt
 run.exe
-.vscode/settings.json
+.vscode/
+comp.log
