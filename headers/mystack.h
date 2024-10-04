@@ -4,7 +4,8 @@
 #include <stdint.h>
 
 #define STACK_DEBUG
-#define STACK_CANARIES_ON
+#define STACK_STRUCT_CANARIES_ON
+#define STACK_DATA_CANARIES_ON
 #define STACK_HASH_ON
 
 #ifdef STACK_DEBUG
@@ -23,14 +24,15 @@
     #define STACKASSERT(stkptr, expr)
 #endif
 
+// you can not redefine canary_t type
+typedef uint64_t canary_t;
+#define CANARY1 0xC9EF9228
+#define CANARY2 0x228C9EF9
 
-#ifdef STACK_CANARIES_ON
-    #define IF_STACK_CANARIES_ON(...) __VA_ARGS__
-    typedef uint64_t canary_t;
-    #define CANARY1 0xC9EF9228
-    #define CANARY2 0x228C9EF9
+#ifdef STACK_STRUCT_CANARIES_ON
+    #define IF_STACK_STRUCT_CANARIES_ON(...) __VA_ARGS__
 #else
-    #define IF_STACK_CANARIES_ON(...)
+    #define IF_STACK_STRUCT_CANARIES_ON(...)
 #endif
 
 #ifdef STACK_HASH_ON
@@ -55,23 +57,18 @@ const stack_elem_t stackpoison = -666.0;
 
 /// @brief struct with stack, do not move uint32_t hash, it must be first (to skip it while calculating hash)
 typedef struct {
-IF_STACK_HASH_ON(
-    hash_t hash;
-)
-IF_STACK_CANARIES_ON(
-    canary_t structcanary1;
-)
+    IF_STACK_HASH_ON(hash_t hash);
+    IF_STACK_STRUCT_CANARIES_ON(canary_t structcanary1);
     stack_elem_t * data;
     size_t size;
     size_t capacity;
-IF_STACK_CANARIES_ON(
-    canary_t structcanary2;
-)
+    stackstatus errno;
+    IF_STACK_STRUCT_CANARIES_ON(canary_t structcanary2);
 } stack_t;
 
 #define MINSTACKDIFF 16
 
-IF_STACK_CANARIES_ON(
+IF_STACK_STRUCT_CANARIES_ON(
     /// @brief checks if struct canaries are OK, returns 1 if OK, 0 if not
     int checkIfStructCanariesOK(stack_t * stk);
 )
