@@ -11,7 +11,7 @@
 #ifdef STACK_DEBUG
     #define STACKASSERT(stkptr, expr)                                                                             \
         do{                                                                                                       \
-            if (!expr){                                                                                           \
+            if (!(expr)){                                                                                           \
                 LOGPRINTWITHTIME(0, "---\\/\n<<<<<<<<STACK ERROR>>>>>>>>");                                       \
                 PRINTFANDLOG(0, "Assertion failed:\n\t{" #expr "}\n\tFILE %s, in FUNCTION \"%s\", LINE %d",       \
                             __FILE__, __PRETTY_FUNCTION__, __LINE__);                                            \
@@ -68,15 +68,7 @@ typedef struct {
 
 #define MINSTACKDIFF 16
 
-IF_STACK_STRUCT_CANARIES_ON(
-    /// @brief checks if struct canaries are OK, returns 1 if OK, 0 if not
-    int checkIfStructCanariesOK(stack_t * stk);
-)
-
 IF_STACK_HASH_ON(
-    /// @brief calculates hash and updates it in stack_t struct
-    void stackUpdateHash(stack_t * stk);
-
     /// @brief calculates hash and returns it
     hash_t stackGetHash(stack_t * stk);
 )
@@ -98,8 +90,5 @@ stackstatus stackOK(stack_t * stk);
 
 /// @brief dumps stack to log file
 void stackDump(stack_t * stk);
-
-/// @brief poisons the rest of stack (from size to the end of capacity)
-void stackPoisonRest(stack_t * stk);
 
 #endif

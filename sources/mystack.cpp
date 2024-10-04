@@ -10,9 +10,26 @@
 #define MIN(a, b) ((a) < (b)) ? (a) : (b)
 #define MAX(a, b) ((a) > (b)) ? (a) : (b)
 
-void stackReduce(stack_t * stk);
-void stackEnlarge(stack_t * stk);
-void stackResize(stack_t * stk, size_t newcap);
+IF_STACK_STRUCT_CANARIES_ON(
+    /// @brief checks if struct canaries are OK, returns 1 if OK, 0 if not
+    static int checkIfStructCanariesOK(stack_t * stk);
+)
+IF_STACK_HASH_ON(
+    /// @brief calculates hash and updates it in stack_t struct
+    static void stackUpdateHash(stack_t * stk);
+)
+
+/// @brief poisons the rest of stack (from size to the end of capacity)
+static void stackPoisonRest(stack_t * stk);
+
+/// @brief reduces stack by 2 when size < capacity / 4
+static void stackReduce(stack_t * stk);
+
+/// @brief enlarges stack by 2 when size = capacity
+static void stackEnlarge(stack_t * stk);
+
+/// @brief resizes stack (is used by stackReduce and stackEnlarge)
+static void stackResize(stack_t * stk, size_t newcap);
 
 stack_t stackCtor(size_t start_cap)
 {
@@ -38,28 +55,22 @@ void stackDtor(stack_t * stk)
     IF_STACK_HASH_ON(stk->hash = 0);
 }
 
-void stackResize(stack_t * stk, size_t newcap)
+static void stackResize(stack_t * stk, size_t newcap)
 {
-    STACKASSERT(stk, stackOK(stk) == STACK_OK);
     stk->data = (stack_elem_t *) realloc(stk->data, newcap * sizeof(stack_elem_t));
     stk->capacity = newcap;
 }
 
-void stackEnlarge(stack_t * stk)
+static void stackEnlarge(stack_t * stk)
 {
-    STACKASSERT(stk, stackOK(stk) == STACK_OK);
     stackResize(stk, MAX(MINSTACKDIFF, 2 * stk->capacity));
     stackPoisonRest(stk);
-    IF_STACK_HASH_ON(stackUpdateHash(stk));
-    STACKASSERT(stk, stackOK(stk) == STACK_OK);
 }
 
-void stackReduce(stack_t * stk)
+static void stackReduce(stack_t * stk)
 {
     if (stk->capacity > MINSTACKDIFF)
         stackResize(stk, stk->capacity / 2);
-    IF_STACK_HASH_ON(stackUpdateHash(stk));
-    STACKASSERT(stk, stackOK(stk) == STACK_OK);
 }
 
 stack_elem_t stackPop(stack_t * stk)
@@ -69,6 +80,7 @@ stack_elem_t stackPop(stack_t * stk)
     if (stk->size <= stk->capacity / 4)
         stackReduce(stk);
     stk->data[stk->size] = stackpoison;
+    STACKASSERT(stk, (stk->size) != (stk->capacity));
     IF_STACK_HASH_ON(stackUpdateHash(stk));
     STACKASSERT(stk, stackOK(stk) == STACK_OK);
     return val;
@@ -85,7 +97,7 @@ void stackPush(stack_t * stk, stack_elem_t val)
     STACKASSERT(stk, stackOK(stk) == STACK_OK);
 }
 
-void stackPoisonRest(stack_t * stk)
+ static void stackPoisonRest(stack_t * stk)
 {
     for (size_t index = stk->size; index < stk->capacity; index++)
         stk->data[index] = (stack_elem_t) stackpoison;
@@ -126,7 +138,7 @@ IF_STACK_HASH_ON(
 
     if (stk->data == NULL)
         stk->errno = STACK_DATA_ERROR;
-    if (stk->size >= stk->capacity && (stk->capacity != 0))
+    if (stk->size > stk->capacity)
         stk->errno = STACK_SIZE_TOOBIG;
     return stk->errno;
 }
@@ -144,15 +156,14 @@ hash_t stackGetHash(stack_t * stk)
 )
 
 IF_STACK_HASH_ON(
-void stackUpdateHash(stack_t * stk)
+static void stackUpdateHash(stack_t * stk)
 {
     stk->hash = stackGetHash(stk);
-    STACKASSERT(stk, stackOK(stk) == STACK_OK);
 }
 )
 
 IF_STACK_STRUCT_CANARIES_ON(
-int checkIfStructCanariesOK(stack_t * stk)
+static int checkIfStructCanariesOK(stack_t * stk)
 {
     if (stk->structcanary1 != CANARY1 ||
         stk->structcanary2 != CANARY2)
