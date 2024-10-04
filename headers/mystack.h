@@ -4,16 +4,43 @@
 #include <stdint.h>
 
 #define STACK_DEBUG
+#define STACK_CANARIES_ON
+#define STACK_HASH_ON
 
 #ifdef STACK_DEBUG
-    #define IF_STACK_DEBUG(...) __VA_ARGS__
+    #define STACKASSERT(stkptr, expr)                                                                             \
+        do{                                                                                                       \
+            if (!expr){                                                                                           \
+                LOGPRINTWITHTIME(0, "---\\/\n<<<<<<<<STACK ERROR>>>>>>>>");                                       \
+                PRINTFANDLOG(0, "Assertion failed:\n\t{" #expr "}\n\tFILE %s, in FUNCTION \"%s\", LINE %d",       \
+                            __FILE__, __PRETTY_FUNCTION__, __LINE__);                                            \
+                stackDump(stkptr);                                                                                \
+                logExit();                                                                                        \
+                exit(1);                                                                                          \
+            }                                                                                                     \
+        }while(0)
+#else
+    #define STACKASSERT(stkptr, expr)
+#endif
+
+
+#ifdef STACK_CANARIES_ON
+    #define IF_STACK_CANARIES_ON(...) __VA_ARGS__
     typedef uint64_t canary_t;
     #define CANARY1 0xC9EF9228
     #define CANARY2 0x228C9EF9
 #else
-    #define IF_STACK_DEBUG(...)
+    #define IF_STACK_CANARIES_ON(...)
 #endif
 
+#ifdef STACK_HASH_ON
+    #define IF_STACK_HASH_ON(...) __VA_ARGS__
+    typedef uint32_t hash_t;
+#else
+    #define IF_STACK_HASH_ON(...)
+#endif
+
+/// @brief enum with errors that stackOK can return
 typedef enum {
     STACK_OK = 0,
     STACK_UNDEF_ERROR,
@@ -24,34 +51,58 @@ typedef enum {
 } stackstatus;
 
 typedef double stack_elem_t;
-typedef uint32_t hash_t;
+const stack_elem_t stackpoison = -666.0;
 
-// do not move uint32_t hash, it must be first (to skip it while calculating hash)
+/// @brief struct with stack, do not move uint32_t hash, it must be first (to skip it while calculating hash)
 typedef struct {
+IF_STACK_HASH_ON(
     hash_t hash;
+)
+IF_STACK_CANARIES_ON(
     canary_t structcanary1;
+)
     stack_elem_t * data;
     size_t size;
     size_t capacity;
+IF_STACK_CANARIES_ON(
     canary_t structcanary2;
+)
 } stack_t;
 
 #define MINSTACKDIFF 16
 
-IF_STACK_DEBUG(
-int checkIfStructCanariesOK(stack_t * stk);
-
+IF_STACK_CANARIES_ON(
+    /// @brief checks if struct canaries are OK, returns 1 if OK, 0 if not
+    int checkIfStructCanariesOK(stack_t * stk);
 )
 
+IF_STACK_HASH_ON(
+    /// @brief calculates hash and updates it in stack_t struct
+    void stackUpdateHash(stack_t * stk);
+
+    /// @brief calculates hash and returns it
+    hash_t stackGetHash(stack_t * stk);
+)
+
+/// @brief constructs stack
 stack_t stackCtor(size_t start_cap);
+
+/// @brief destroys stack
 void stackDtor(stack_t * stk);
 
+/// @brief makes pop, returns popped elem
 stack_elem_t stackPop(stack_t * stk);
+
+/// @brief makes push to stack
 void stackPush(stack_t * stk, stack_elem_t val);
 
-uint32_t stackGetHash(stack_t * stk);
-
+/// @brief checks if stack is OK, returns stackstatus
 stackstatus stackOK(stack_t * stk);
+
+/// @brief dumps stack to log file
 void stackDump(stack_t * stk);
+
+/// @brief poisons the rest of stack (from size to the end of capacity)
+void stackPoisonRest(stack_t * stk);
 
 #endif
