@@ -14,8 +14,8 @@ int main()
         stackPush(&mystk, (double) ((index * 156) % 21));
     }
     stackDump(&mystk);
-    for (size_t index = 0; index < 110; index++){
-        LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "poping  << cap: %zu val: %lg", mystk.capacity, stackPop(&mystk));
+    for (size_t index = 0; index < 149; index++){
+        printf("%lg\n", stackPop(&mystk));
     }
     stackDump(&mystk);
     stackDtor(&mystk);

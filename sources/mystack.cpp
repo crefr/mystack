@@ -43,6 +43,7 @@ stack_t stackCtor(size_t start_cap)
     IF_STACK_STRUCT_CANARIES_ON(stk.structcanary2 = CANARY2;)
     IF_STACK_HASH_ON(stackUpdateHash(&stk);)
     STACKASSERT(&stk, stackOK(&stk) == STACK_OK);
+    LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "STACK CONSTRUCTED, start_cap = %zu", start_cap);
     return stk;
 }
 
@@ -53,10 +54,13 @@ void stackDtor(stack_t * stk)
     stk->data = NULL;
     stk->capacity = 0;
     IF_STACK_HASH_ON(stk->hash = 0);
+    LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "STACK DESTRUCTED");
+
 }
 
 static void stackResize(stack_t * stk, size_t newcap)
 {
+    LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "stack RESIZE from %zu to %zu", stk->capacity, newcap);
     stk->data = (stack_elem_t *) realloc(stk->data, newcap * sizeof(stack_elem_t));
     stk->capacity = newcap;
 }
@@ -76,6 +80,7 @@ static void stackReduce(stack_t * stk)
 stack_elem_t stackPop(stack_t * stk)
 {
     STACKASSERT(stk, stk->size != 0);
+    LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "stack POP, size: %zu, val: %lg", stk->size, stk->data[stk->size - 1]);
     stack_elem_t val = stk->data[--(stk->size)];
     if (stk->size <= stk->capacity / 4)
         stackReduce(stk);
@@ -88,6 +93,7 @@ stack_elem_t stackPop(stack_t * stk)
 
 void stackPush(stack_t * stk, stack_elem_t val)
 {
+    LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "stack PUSH, size: %zu, val: %lg", stk->size, val);
     STACKASSERT(stk, stackOK(stk) == STACK_OK);
     if (stk->size == stk->capacity)
         stackEnlarge(stk);
