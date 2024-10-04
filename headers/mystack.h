@@ -11,10 +11,10 @@
 #ifdef STACK_DEBUG
     #define STACKASSERT(stkptr, expr)                                                                             \
         do{                                                                                                       \
-            if (!(expr)){                                                                                           \
+            if (!(expr)){                                                                                         \
                 LOGPRINTWITHTIME(0, "---\\/\n<<<<<<<<STACK ERROR>>>>>>>>");                                       \
                 PRINTFANDLOG(0, "Assertion failed:\n\t{" #expr "}\n\tFILE %s, in FUNCTION \"%s\", LINE %d",       \
-                            __FILE__, __PRETTY_FUNCTION__, __LINE__);                                            \
+                            __FILE__, __PRETTY_FUNCTION__, __LINE__);                                             \
                 stackDump(stkptr);                                                                                \
                 logExit();                                                                                        \
                 exit(1);                                                                                          \
@@ -35,6 +35,12 @@ typedef uint64_t canary_t;
     #define IF_STACK_STRUCT_CANARIES_ON(...)
 #endif
 
+#ifdef STACK_DATA_CANARIES_ON
+    #define IF_STACK_DATA_CANARIES_ON(...) __VA_ARGS__
+#else
+    #define IF_STACK_DATA_CANARIES_ON(...)
+#endif
+
 #ifdef STACK_HASH_ON
     #define IF_STACK_HASH_ON(...) __VA_ARGS__
     typedef uint32_t hash_t;
@@ -49,11 +55,18 @@ typedef enum {
     STACK_HASH_ERROR,
     STACK_DATA_ERROR,
     STACK_SIZE_TOOBIG,
-    STACK_STCANARYERROR
+    STACK_STRUCT_CANARY_ERROR,
+    STACK_DATA_CANARY_ERROR
 } stackstatus;
 
+typedef enum {
+    STACK_LEFT_CANARY_CORRUPTED = -1,
+    STACK_CANARIES_OK = 0,
+    STACK_RIGHT_CANARY_CORRUPTED = 1
+} canarystatus;
+
 typedef double stack_elem_t;
-const stack_elem_t stackpoison = -666.0;
+const stack_elem_t stackpoison = -545.0;
 
 /// @brief struct with stack, do not move uint32_t hash, it must be first (to skip it while calculating hash)
 typedef struct {

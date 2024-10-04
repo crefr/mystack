@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <assert.h>
 
 #include "mystack.h"
 #include "hash.h"
@@ -12,11 +11,18 @@
 
 IF_STACK_STRUCT_CANARIES_ON(
     /// @brief checks if struct canaries are OK, returns 1 if OK, 0 if not
-    static int checkIfStructCanariesOK(stack_t * stk);
+    static canarystatus checkIfStructCanariesOK(stack_t * stk);
 )
 IF_STACK_HASH_ON(
     /// @brief calculates hash and updates it in stack_t struct
     static void stackUpdateHash(stack_t * stk);
+)
+IF_STACK_DATA_CANARIES_ON(
+    /// @brief fills canaries at data
+    static void fillDataCanaries(stack_t * stk);
+
+    /// @brief checks if data canaries are ok
+    static canarystatus checkIfDataCanariesOK(stack_t * stk);
 )
 
 /// @brief poisons the rest of stack (from size to the end of capacity)
@@ -34,11 +40,21 @@ static void stackResize(stack_t * stk, size_t newcap);
 stack_t stackCtor(size_t start_cap)
 {
     stack_t stk = {};
-    IF_STACK_STRUCT_CANARIES_ON(stk.structcanary1 = CANARY1;)
-    stk.data = (stack_elem_t *) calloc(start_cap, sizeof(stack_elem_t));
     stk.size = 0;
     stk.capacity = start_cap;
     stk.errno = STACK_OK;
+    IF_STACK_STRUCT_CANARIES_ON(stk.structcanary1 = CANARY1;)
+
+    #ifndef STACK_DATA_CANARIES_ON
+    stk.data = (stack_elem_t *) calloc(start_cap, sizeof(stack_elem_t));
+    #else
+    size_t startcapincanaries = -(-((start_cap) * sizeof(stack_elem_t)) / sizeof(canary_t));
+    void * datawithcanaries = calloc(startcapincanaries + 2, sizeof(canary_t));
+    datawithcanaries = (canary_t *)datawithcanaries + 1;
+    stk.data = (stack_elem_t *)datawithcanaries;
+    fillDataCanaries(&stk);
+    #endif
+
     stackPoisonRest(&stk);
     IF_STACK_STRUCT_CANARIES_ON(stk.structcanary2 = CANARY2;)
     IF_STACK_HASH_ON(stackUpdateHash(&stk);)
@@ -50,19 +66,29 @@ stack_t stackCtor(size_t start_cap)
 void stackDtor(stack_t * stk)
 {
     STACKASSERT(stk, stackOK(stk) == STACK_OK);
+    #ifndef STACK_DATA_CANARIES_ON
     free(stk->data);
+    #else
+    free((canary_t *)(stk->data) - 1);
+    #endif
     stk->data = NULL;
     stk->capacity = 0;
     IF_STACK_HASH_ON(stk->hash = 0);
     LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "STACK DESTRUCTED");
-
 }
 
 static void stackResize(stack_t * stk, size_t newcap)
 {
     LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "stack RESIZE from %zu to %zu", stk->capacity, newcap);
-    stk->data = (stack_elem_t *) realloc(stk->data, newcap * sizeof(stack_elem_t));
     stk->capacity = newcap;
+    #ifndef STACK_DATA_CANARIES_ON
+    stk->data = (stack_elem_t *) realloc(stk->data, newcap * sizeof(stack_elem_t));
+    #else
+    size_t newsizeincanaries = -((-(newcap) * sizeof(stack_elem_t)) / sizeof(canary_t)) + 2;
+    void * datawithcanaries = realloc((canary_t *)stk->data - 1, newsizeincanaries * sizeof(canary_t));
+    stk->data = (stack_elem_t *) ((canary_t *)datawithcanaries + 1);
+    fillDataCanaries(stk);
+    #endif
 }
 
 static void stackEnlarge(stack_t * stk)
@@ -133,9 +159,15 @@ IF_STACK_HASH_ON(
 
 stackstatus stackOK(stack_t * stk)
 {
+    // TODO Check null
+    // TODO check errno
 IF_STACK_STRUCT_CANARIES_ON(
-    if (!checkIfStructCanariesOK(stk))
-        stk->errno = STACK_STCANARYERROR;
+    if (checkIfStructCanariesOK(stk) != STACK_CANARIES_OK)
+        stk->errno = STACK_STRUCT_CANARY_ERROR;
+)
+IF_STACK_DATA_CANARIES_ON(
+    if (checkIfDataCanariesOK(stk) != STACK_CANARIES_OK)
+        stk->errno = STACK_DATA_CANARY_ERROR;
 )
 IF_STACK_HASH_ON(
     if (stk->hash != stackGetHash(stk))
@@ -169,11 +201,34 @@ static void stackUpdateHash(stack_t * stk)
 )
 
 IF_STACK_STRUCT_CANARIES_ON(
-static int checkIfStructCanariesOK(stack_t * stk)
+static canarystatus checkIfStructCanariesOK(stack_t * stk)
 {
-    if (stk->structcanary1 != CANARY1 ||
-        stk->structcanary2 != CANARY2)
-        return 0;
-    return 1;
+    if (stk->structcanary1 != CANARY1)
+        return STACK_LEFT_CANARY_CORRUPTED;
+    if (stk->structcanary2 != CANARY2)
+        return STACK_RIGHT_CANARY_CORRUPTED;
+    return STACK_CANARIES_OK;
 }
+)
+
+IF_STACK_DATA_CANARIES_ON(
+static void fillDataCanaries(stack_t * stk)
+{
+    *((canary_t *)(stk->data) - 1) = CANARY1;
+    *((canary_t *)(stk->data) + -((-(stk->capacity) * sizeof(stack_elem_t)) / sizeof(canary_t))) = CANARY2;
+}
+)
+
+IF_STACK_DATA_CANARIES_ON(
+static canarystatus checkIfDataCanariesOK(stack_t * stk)
+{
+    canary_t * leftcanaryptr  = (canary_t *)(stk->data) - 1;
+    canary_t * rightcanaryptr = (canary_t *)(stk->data) + -((-(stk->capacity) * sizeof(stack_elem_t)) / sizeof(canary_t));
+    if (*leftcanaryptr  != CANARY1)
+        return STACK_LEFT_CANARY_CORRUPTED;
+    if (*rightcanaryptr != CANARY2)
+        return STACK_RIGHT_CANARY_CORRUPTED;
+    return STACK_CANARIES_OK;
+}
+
 )

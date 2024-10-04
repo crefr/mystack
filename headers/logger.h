@@ -26,7 +26,7 @@
                 printf("\n");                    \
         }while(0)
 
-int logStart(const char * logfile, int loglevel);
+int  logStart(const char * logfile, int loglevel);
 void logPrint(int loglevel, const char * fmt, ...);
 void logPrintTime(int loglevel);
 void logExit(void);
