@@ -65,8 +65,8 @@ typedef enum {
     STACK_RIGHT_CANARY_CORRUPTED = 1
 } canarystatus;
 
-typedef double stack_elem_t;
-const stack_elem_t stackpoison = -545.0;
+typedef int32_t stack_elem_t;
+const stack_elem_t stackpoison = -545;
 
 /// @brief struct with stack, do not move uint32_t hash, it must be first (to skip it while calculating hash)
 typedef struct {
@@ -75,7 +75,7 @@ typedef struct {
     stack_elem_t * data;
     size_t size;
     size_t capacity;
-    stackstatus errno;
+    stackstatus errNo;
     IF_STACK_STRUCT_CANARIES_ON(canary_t structcanary2);
 } stack_t;
 

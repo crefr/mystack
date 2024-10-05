@@ -42,13 +42,17 @@ $(FILENAME): $(OBJDIR)main.o $(OBJDIR)mystack.o $(OBJDIR)logger.o $(OBJDIR)hash.
 	$(CC) $(CFLAGS) $^ -o $@
 
 $(OBJDIR)main.o: $(SRCDIR)main.cpp $(HEADDIR)mystack.h $(HEADDIR)logger.h
+	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OBJDIR)mystack.o: $(SRCDIR)mystack.cpp $(HEADDIR)mystack.h $(HEADDIR)logger.h
+	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 $(OBJDIR)logger.o: $(SRCDIR)logger.cpp $(HEADDIR)logger.h
+	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 $(OBJDIR)hash.o: $(SRCDIR)hash.cpp $(HEADDIR)hash.h
+	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 
