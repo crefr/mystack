@@ -38,8 +38,6 @@ else ifeq ($(BUILD),RELEASE)
 	CFLAGS = $(CFLAGS_RELEASE)
 endif
 
-# all: $(FILENAME)
-
 $(FILENAME): $(OBJDIR)main.o $(OBJDIR)mystack.o $(OBJDIR)logger.o $(OBJDIR)hash.o
 	$(CC) $(CFLAGS) $^ -o $@
 
