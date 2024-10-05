@@ -251,6 +251,9 @@ IF_STACK_DATA_CANARIES_ON(
 static size_t stackGetSizeInCanaries(stack_t * stk)
 {
     assert(stk != NULL);
-    return -(-((stk->capacity) * sizeof(stack_elem_t)) / sizeof(canary_t));
+    size_t size_in_canaries = ((stk->capacity) * sizeof(stack_elem_t)) / sizeof(canary_t);
+    if (size_in_canaries % sizeof(canary_t) != 0)
+        size_in_canaries++;
+    return size_in_canaries;
 }
 )
