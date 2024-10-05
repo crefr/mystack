@@ -75,7 +75,7 @@ typedef struct {
     stack_elem_t * data;
     size_t size;
     size_t capacity;
-    stackstatus errno;
+    stackstatus errNo;
     IF_STACK_STRUCT_CANARIES_ON(canary_t structcanary2);
 } stack_t;
 
