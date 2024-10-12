@@ -49,6 +49,7 @@ int main()
     printf("data = %p, hash = %X, c1 = %lX, c2 = %lX, size = %lu, cap = %lu, errno = %d\n",
         mystk.data, mystk.hash, mystk.structcanary1, mystk.structcanary2, mystk.size, mystk.capacity, mystk.errNo);
 
+    mystk.data += 5;
     stackDump(&mystk);
     stackDtor(&mystk);
 

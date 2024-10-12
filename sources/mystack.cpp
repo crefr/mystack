@@ -70,7 +70,7 @@ stack_t stackCtor(size_t start_cap)
 void stackDtor(stack_t * stk)
 {
     assert(stk != NULL);
-    assert(stk->data != NULL);
+    STACKASSERT(stk, stackOK(stk) == STACK_OK);
   #ifndef STACK_DATA_CANARIES_ON
     free(stk->data);
   #else
@@ -146,6 +146,7 @@ void stackPush(stack_t * stk, stack_elem_t val)
 void stackDump(stack_t * stk)
 {
     assert(stk != NULL);
+    stackstatus now_status = stackOK(stk);
     logPrint(LOG_DEBUG, "-----------STACK DUMP-----------");
     logPrint(LOG_DEBUG, "stack_t[%p]{", stk);
     logPrint(LOG_DEBUG, "\terrNo = %d", stk->errNo);
@@ -155,7 +156,7 @@ IF_STACK_HASH_ON(
     logPrint(LOG_DEBUG, "\thash = %08X", stk->hash);
 )
     logPrint(LOG_DEBUG, "\tdata[%p]", stk->data);
-    if (stk->data != NULL){
+    if (now_status != STACK_DATA_ERROR && now_status != STACK_HASH_ERROR){
         logPrint(LOG_DEBUG, "\t{");
         for (size_t index = 0; index < stk->capacity; index++){
             logPrint(LOG_DEBUG, "\t\t[%lu] = %d", index, stk->data[index]);
@@ -177,13 +178,13 @@ IF_STACK_STRUCT_CANARIES_ON(
     if (errNo == STACK_OK && checkIfStructCanariesOK(stk) != STACK_CANARIES_OK)
         errNo = STACK_STRUCT_CANARY_ERROR;
 )
-IF_STACK_DATA_CANARIES_ON(
-    if (errNo == STACK_OK && checkIfDataCanariesOK(stk) != STACK_CANARIES_OK)
-        errNo = STACK_DATA_CANARY_ERROR;
-)
 IF_STACK_HASH_ON(
     if (errNo == STACK_OK && stk->hash != stackGetHash(stk))
         errNo = STACK_HASH_ERROR;
+)
+IF_STACK_DATA_CANARIES_ON(
+    if (errNo == STACK_OK && checkIfDataCanariesOK(stk) != STACK_CANARIES_OK)
+        errNo = STACK_DATA_CANARY_ERROR;
 )
     stk->errNo = errNo;
     return errNo;
