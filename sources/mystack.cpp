@@ -70,7 +70,7 @@ stack_t stackCtor(size_t start_cap)
 void stackDtor(stack_t * stk)
 {
     assert(stk != NULL);
-    STACKASSERT(stk, stackOK(stk) == STACK_OK);
+    assert(stk->data != NULL);
   #ifndef STACK_DATA_CANARIES_ON
     free(stk->data);
   #else
@@ -197,7 +197,7 @@ hash_t stackGetHash(stack_t * stk)
     uint32_t datahash   = MurMur32Hash(stk->data, stk->capacity * sizeof(stack_elem_t), 0);
     char * structstartptr = (char *)stk + sizeof(hash_t);
     uint32_t structhash = MurMur32Hash(structstartptr, sizeof(stack_t) - sizeof(hash_t), 0);
-    uint32_t hash = (datahash >> 1) + (structhash >> 1);
+    uint32_t hash = (datahash << 16) | (structhash >> 16);
     return hash;
 }
 )
