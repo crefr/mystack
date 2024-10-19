@@ -49,15 +49,15 @@ stack_t stackCtor(size_t start_cap)
     stk.errNo = STACK_OK;
     IF_STACK_STRUCT_CANARIES_ON(stk.structcanary1 = CANARY1;)
 
-    #ifndef STACK_DATA_CANARIES_ON
+  #ifndef STACK_DATA_CANARIES_ON
     stk.data = (stack_elem_t *) calloc(start_cap, sizeof(stack_elem_t));
-    #else
+  #else
     size_t startcapincanaries = stackGetSizeInCanaries(&stk);
     void * datawithcanaries = calloc(startcapincanaries + 2, sizeof(canary_t));
     datawithcanaries = (canary_t *)datawithcanaries + 1;
     stk.data = (stack_elem_t *)datawithcanaries;
     fillDataCanaries(&stk);
-    #endif
+  #endif
 
     stackPoisonRest(&stk);
     IF_STACK_STRUCT_CANARIES_ON(stk.structcanary2 = CANARY2;)
@@ -71,14 +71,11 @@ void stackDtor(stack_t * stk)
 {
     assert(stk != NULL);
     STACKASSERT(stk, stackOK(stk) == STACK_OK);
-    #ifndef STACK_DATA_CANARIES_ON
+  #ifndef STACK_DATA_CANARIES_ON
     free(stk->data);
-    #else
+  #else
     free((canary_t *)(stk->data) - 1);
-    #endif
-    stk->data = NULL;
-    stk->capacity = 0;
-    IF_STACK_HASH_ON(stk->hash = 0);
+  #endif
     LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "STACK DESTRUCTED");
 }
 
@@ -87,14 +84,14 @@ static void stackResize(stack_t * stk, size_t newcap)
     assert(stk != NULL);
     LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "stack RESIZE from %zu to %zu", stk->capacity, newcap);
     stk->capacity = newcap;
-    #ifndef STACK_DATA_CANARIES_ON
+  #ifndef STACK_DATA_CANARIES_ON
     stk->data = (stack_elem_t *) realloc(stk->data, newcap * sizeof(stack_elem_t));
-    #else
+  #else
     size_t newsizeincanaries = stackGetSizeInCanaries(stk) + 2;
     void * datawithcanaries = realloc((canary_t *)stk->data - 1, newsizeincanaries * sizeof(canary_t));
     stk->data = (stack_elem_t *) ((canary_t *)datawithcanaries + 1);
     fillDataCanaries(stk);
-    #endif
+  #endif
 }
 
 static void stackEnlarge(stack_t * stk)
@@ -117,10 +114,11 @@ stack_elem_t stackPop(stack_t * stk)
     STACKASSERT(stk, stk->size != 0);
     STACKASSERT(stk, stackOK(stk) == STACK_OK);
     LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "stack POP, size: %zu, val: %lg", stk->size, stk->data[stk->size - 1]);
-    stack_elem_t val = stk->data[--(stk->size)];
-    if (stk->size <= stk->capacity / 4)
+    stack_elem_t val = stk->data[stk->size - 1];
+    if (stk->size - 1 <= stk->capacity / 4)
         stackReduce(stk);
-    stk->data[stk->size] = stackpoison;
+    stk->data[stk->size - 1] = stackpoison;
+    stk->size--;
     STACKASSERT(stk, (stk->size) != (stk->capacity));
     IF_STACK_HASH_ON(stackUpdateHash(stk));
     STACKASSERT(stk, stackOK(stk) == STACK_OK);
@@ -149,6 +147,7 @@ void stackPush(stack_t * stk, stack_elem_t val)
 void stackDump(stack_t * stk)
 {
     assert(stk != NULL);
+    stackstatus now_status = stackOK(stk);
     logPrint(LOG_DEBUG, "-----------STACK DUMP-----------");
     logPrint(LOG_DEBUG, "stack_t[%p]{", stk);
     logPrint(LOG_DEBUG, "\terrNo = %d", stk->errNo);
@@ -158,10 +157,10 @@ IF_STACK_HASH_ON(
     logPrint(LOG_DEBUG, "\thash = %08X", stk->hash);
 )
     logPrint(LOG_DEBUG, "\tdata[%p]", stk->data);
-    if (stk->data != NULL){
+    if (now_status != STACK_DATA_ERROR && now_status != STACK_HASH_ERROR){
         logPrint(LOG_DEBUG, "\t{");
         for (size_t index = 0; index < stk->capacity; index++){
-            logPrint(LOG_DEBUG, "\t\t[%lu] = %lg", index, stk->data[index]);
+            logPrint(LOG_DEBUG, "\t\t[%lu] = %d", index, stk->data[index]);
         }
         logPrint(LOG_DEBUG, "\t}");
     }
@@ -180,13 +179,13 @@ IF_STACK_STRUCT_CANARIES_ON(
     if (errNo == STACK_OK && checkIfStructCanariesOK(stk) != STACK_CANARIES_OK)
         errNo = STACK_STRUCT_CANARY_ERROR;
 )
-IF_STACK_DATA_CANARIES_ON(
-    if (errNo == STACK_OK && checkIfDataCanariesOK(stk) != STACK_CANARIES_OK)
-        errNo = STACK_DATA_CANARY_ERROR;
-)
 IF_STACK_HASH_ON(
     if (errNo == STACK_OK && stk->hash != stackGetHash(stk))
         errNo = STACK_HASH_ERROR;
+)
+IF_STACK_DATA_CANARIES_ON(
+    if (errNo == STACK_OK && checkIfDataCanariesOK(stk) != STACK_CANARIES_OK)
+        errNo = STACK_DATA_CANARY_ERROR;
 )
     stk->errNo = errNo;
     return errNo;
@@ -200,7 +199,7 @@ hash_t stackGetHash(stack_t * stk)
     uint32_t datahash   = MurMur32Hash(stk->data, stk->capacity * sizeof(stack_elem_t), 0);
     char * structstartptr = (char *)stk + sizeof(hash_t);
     uint32_t structhash = MurMur32Hash(structstartptr, sizeof(stack_t) - sizeof(hash_t), 0);
-    uint32_t hash = (datahash >> 1) + (structhash >> 1);
+    uint32_t hash = (datahash << 16) | (structhash >> 16);
     return hash;
 }
 )
