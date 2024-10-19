@@ -79,7 +79,7 @@ typedef struct {
     IF_STACK_STRUCT_CANARIES_ON(canary_t structcanary2);
 } stack_t;
 
-#define MINSTACKDIFF 16
+const size_t MINSTACKDIFF = 16;
 
 IF_STACK_HASH_ON(
     /// @brief calculates hash and returns it

@@ -112,6 +112,7 @@ stack_elem_t stackPop(stack_t * stk)
 {
     assert(stk != NULL);
     STACKASSERT(stk, stk->size != 0);
+    STACKASSERT(stk, stackOK(stk) == STACK_OK);
     LOGPRINTWITHTIME(LOG_DEBUG_PLUS, "stack POP, size: %zu, val: %lg", stk->size, stk->data[stk->size - 1]);
     stack_elem_t val = stk->data[stk->size - 1];
     if (stk->size - 1 <= stk->capacity / 4)
